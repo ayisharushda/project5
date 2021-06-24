@@ -447,7 +447,7 @@ class Employee extends MY_Controller {
 	/*if(isset($data['edit'][0]->employee_id){
 		$this->base_model->update('tbl_employee_details',array('employee_code'=>$data['edit'][0]->employee_code));
 	}*/	
-	//isset($data['edit'][0]->employee_id) ? $data['edit'][0]->employee_id : set_value('employee_id');dffrrfr
+	//isset($data['edit'][0]->employee_id) ? $data['edit'][0]->employee_id : set_value('employee_id');dffrrfrgrgty
 public function do_upload(){
 	$config['upload_path']="./assets/images";
 	$config['allowed_types']='gif|jpg|png';
