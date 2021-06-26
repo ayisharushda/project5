@@ -79,6 +79,7 @@ class Employee extends MY_Controller {
 	}
 
 	function create(){
+		
 		$this->template->addCss(base_url().'assets/dist/css/jquery-ui-timepicker-addon.css'); 
 		$this->template->addJs(base_url().'assets/dist/js/jquery-ui-timepicker-addon.js');
 		$this->template->addJs(base_url().'assets/dist/js/date-time.js');

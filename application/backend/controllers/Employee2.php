@@ -171,27 +171,30 @@ class Employee extends MY_Controller {
 			$lastid = $this->db->insert_id(); 
 			$this->load->library('upload');
 			if (isset($_FILES['employee_photo']) && !empty($_FILES['employee_photo']['name'])){
-			    	
+				
+				$edit['employee']=$this->base_model->get_fields('tbl_employee_master',array('employee_photo','employee_code'),array('employee_id'=>$lastid));
 				$config = array(
 					'upload_path' 	=> $this->data['employee-upload-path'],
 					'allowed_types' => "gif|jpg|png",
 					'overwrite' 	=> FALSE,
-					'max_size' 		=> "2048000", 
+					'max_size' 		=> "2048000",
 					'remove_spaces' => TRUE,
-					'file_name' 	=> 'emp_'.date('Ymdhis')
+					'file_name' 	=> $edit['employee'][0]->employee_code.'_emp_photo'
 				);
+
 				$this->upload->initialize($config);
 				if($this->upload->do_upload('employee_photo')){
-					$image = $this->upload->data(); 
-
-					$data = array(
-						'employee_photo' => $image['file_name']
-					);
-					
+					if($edit['employee'][0]->employee_photo!=""){
+						unlink($this->data['employee-upload-path'].$edit['employee'][0]->employee_photo);
+					}
+					$image = $this->upload->data(); 					
+					$data = array('employee_photo' => $image['file_name']);
 					$this->base_model->update('tbl_employee_master',$data,array('employee_id'=>$lastid));
-				}	
+				}
+
 			}
-			$this->session->set_flashdata('success', 'Employee inserted sucessfully..!'); 
+			
+			$this->session->set_flashdata('success', 'Employee inserted successfully..!'); 
 			//redirect(base_url().'employee/create');
 			redirect(base_url().'employee/edit/'.$lastid);
 		}
@@ -286,40 +289,61 @@ class Employee extends MY_Controller {
 				
 			);
 			$this->base_model->update('tbl_employee_master',$data,array('employee_id'=>$id));
+			
 			$this->load->library('upload');
 			if (isset($_FILES['employee_photo']) && !empty($_FILES['employee_photo']['name'])){
+				
+				$edit['employee']=$this->base_model->get_fields('tbl_employee_master',array('employee_photo','employee_code'),array('employee_id'=>$id));
 				$config = array(
 					'upload_path' 	=> $this->data['employee-upload-path'],
 					'allowed_types' => "gif|jpg|png",
 					'overwrite' 	=> FALSE,
 					'max_size' 		=> "2048000",
 					'remove_spaces' => TRUE,
-					'file_name' 	=> 'emp_'.date('Ymdhis')
+					'file_name' 	=> $edit['employee'][0]->employee_code.'_emp_photo'
 				);
 
 				$this->upload->initialize($config);
 				if($this->upload->do_upload('employee_photo')){
-
-					$image = $this->upload->data(); 
-
-					if($edit['company'][0]->company_logo!=""){
-						unlink($this->data['employee-upload-path'].$edit['employee_photo'][0]->company_logo);
+					if($edit['employee'][0]->employee_photo!=""){
+						unlink($this->data['employee-upload-path'].$edit['employee'][0]->employee_photo);
 					}
-					$data = array(
-						'employee_photo' => $image['file_name']
-					);
-
+					$image = $this->upload->data(); 					
+					$data = array('employee_photo' => $image['file_name']);
 					$this->base_model->update('tbl_employee_master',$data,array('employee_id'=>$id));
 				}
 
 			}
 			
-			$this->session->set_flashdata('success', 'Employee updated sucessfully..!'); 
+			$this->session->set_flashdata('success', 'Employee updated successfully..!'); 
 			redirect(base_url().'employee/edit/'.$id);
 		}
 	}
 	public function delete($id=''){
-		if(!empty($id)){
+		if(!empty($id))
+		
+		{
+			$employee_master = $this->base_model->get_fields('tbl_employee_master',array('employee_code','employee_photo'),array('employee_id' => $id));
+			$employee_details 	= $this->base_model->get_fields('tbl_employee_details',array('passport_front_image','passport_back_image','visa_image','health_card_image','labour_card_image','emirates_image','driving_licence_image'),array('employee_code' => $employee_master[0]->employee_code));
+
+			if($employee_details[0]->passport_front_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->passport_front_image);	
+			if($employee_details[0]->passport_back_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->passport_back_image);
+			if($employee_details[0]->visa_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->visa_image);
+			if($employee_details[0]->health_card_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->health_card_image);
+			if($employee_details[0]->labour_card_image!="")
+				    unlink($this->data['employee-upload-path'].$employee_details[0]->labour_card_image);
+			if($employee_details[0]->emirates_image!="")
+				    unlink($this->data['employee-upload-path'].$employee_details[0]->emirates_image);
+			if($employee_details[0]->driving_licence_image!="")
+				    unlink($this->data['employee-upload-path'].$employee_details[0]->driving_licence_image);
+			if($employee_master[0]->employee_photo!="")
+				unlink($this->data['employee-upload-path'].$employee_master[0]->employee_photo);
+			
+			$this->base_model->delete('tbl_employee_details',array('employee_code'=>$employee_master[0]->employee_code));
 			$this->base_model->delete('tbl_employee_master',array('employee_id'=>$id));
 			echo 'Success';
 		}
@@ -393,6 +417,7 @@ class Employee extends MY_Controller {
 		redirect(base_url().'employee/change_password');	
 		//$this->output->enable_profiler(TRUE); 	
 		}
+
 	}
 
     public function update_employee_doc(){
@@ -414,8 +439,8 @@ class Employee extends MY_Controller {
 			'bank_account_expire_date'=>date('Y-m-d',strtotime($this->input->post('bank_account_expire_date'))),
 			'driving_licence_no' => $this->input->post('driving_licence_no'),
 			'driving_licence_expire_date'=>date('Y-m-d',strtotime($this->input->post('driving_licence_expire_date')))
-		);
 		
+		);
 		$this->db->select('employee_code');
 		$this->db->from('tbl_employee_details')->where(array('employee_code'=>$employee[0]->employee_code));
 		$q =  $this->db->get();
@@ -426,44 +451,139 @@ class Employee extends MY_Controller {
 			$this->base_model->add('tbl_employee_details',$data);
 			echo 'Inserted';
 		}
-		
-		
-		
-		
-		
-		
+			
 	}
-	
-	/*  Check tbl_emplyee_details with employee_id if count >0 update else add * 
-	    $this->base_model->update('tbl_employee_master',$employee[0]->employee_code,array('employee_id'=>$id));
-	if(isset($data['edit'][0]->employee_id){
-		$this->base_model->update('tbl_employee_details',array('employee_code'=>$data['edit'][0]->employee_code));
-		$lastid = $this->db->insert_id(); 
-	    echo 'Inserted';             */
-	//$data['edit'][0]->employee_code=$this->base_model->edit('tbl_employee_details',array('employee_id'=>$id));
-	//$this->base_model->add('tbl_employee_details',$data);
-	//$lastid = $this->db->insert_id(); 
-	//echo 'Inserted';
-	/*if(isset($data['edit'][0]->employee_id){
-		$this->base_model->update('tbl_employee_details',array('employee_code'=>$data['edit'][0]->employee_code));
-	}*/	
-	//isset($data['edit'][0]->employee_id) ? $data['edit'][0]->employee_id : set_value('employee_id');dffrrfrgrgty
-public function do_upload(){
-	$config['upload_path']="./assets/images";
-	$config['allowed_types']='gif|jpg|png';
-	$config['encrypt_name'] = TRUE;
-	 
-	$this->load->library('upload',$config);
-	if($this->upload->do_upload("file")){
-		$data = array(
-			'passport_front_image' => $this->upload->data()
+	public function employee_doc_upload(){
+		$this->load->library('upload');
+		$employee = $this->base_model->get_fields('tbl_employee_master',array('employee_code'),array('employee_id'=> $this->input->post('employee_id'))); 
+		$employee_code 		= $employee[0]->employee_code;
+		$employee_details 	= $this->base_model->get_fields('tbl_employee_details',array('passport_front_image','passport_back_image','visa_image','health_card_image','labour_card_image','emirates_image','driving_licence_image'),array('employee_code' => $employee_code));
+		
+		$image_base_url		= $this->data['project_base_url'].'/uploads/employee/';
+		
+		$config = array(
+			'upload_path' 	=> $this->data['employee-upload-path'],
+			'allowed_types' => "jpg|png|jpeg",
+			'overwrite' 	=> TRUE,
+			'max_size' 		=> "2048000",
+			'remove_spaces' => TRUE,
 		);
-
-		$result= $this->base_model->add('tbl_employee_details',$data);
-		echo json_decode($result);
+		
+		if(isset($_FILES['passport_front_image']) && !empty($_FILES['passport_front_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_passport_front'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('passport_front_image')){
+				if($employee_details[0]->passport_front_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->passport_front_image);
+				$image = $this->upload->data(); 
+				$data = array('passport_front_image' => $image['file_name'],'employee_code'=>$employee_code);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully'.count($employee_details),'image_url'=>$image_base_url.$image['file_name']);
+			}else 
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+		}else if(isset($_FILES['passport_back_image']) && !empty($_FILES['passport_back_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_passport_back'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('passport_back_image')){
+				if($employee_details[0]->passport_back_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->passport_back_image);
+				$image = $this->upload->data(); 
+				$data = array('passport_back_image' => $image['file_name'],'employee_code'=>$employee_code);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully','image_url'=>$image_base_url.$image['file_name']);
+			}else
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+				
+		}else if(isset($_FILES['visa_image']) && !empty($_FILES['visa_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_visa'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('visa_image')){
+				if($employee_details[0]->visa_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->visa_image);
+				$image = $this->upload->data(); 
+				$data = array('visa_image' => $image['file_name'],'employee_code'=>$employee_code);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully','image_url'=>$image_base_url.$image['file_name']);
+			}else
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+		}else if(isset($_FILES['health_card_image']) && !empty($_FILES['health_card_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_health_card'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('health_card_image')){
+				if($employee_details[0]->health_card_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->health_card_image);
+				$image = $this->upload->data(); 
+				$data = array('health_card_image' => $image['file_name'],'employee_code'=>$employee_code);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully','image_url'=>$image_base_url.$image['file_name']);
+			}else
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+		}else if(isset($_FILES['labour_card_image']) && !empty($_FILES['labour_card_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_labour_card'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('labour_card_image')){
+				if($employee_details[0]->labour_card_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->labour_card_image);
+				$image = $this->upload->data(); 
+				$data = array(
+					'labour_card_image' => $image['file_name'],'employee_code'=>$employee_code
+				);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully','image_url'=>$image_base_url.$image['file_name']);
+			}else
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+		}else if(isset($_FILES['driving_licence_image']) && !empty($_FILES['driving_licence_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_driving_licence'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('driving_licence_image')){
+				if($employee_details[0]->driving_licence_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->driving_licence_image);
+				$image = $this->upload->data(); 
+				$data = array(
+					'driving_licence_image' => $image['file_name'],'employee_code'=>$employee_code
+				);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully','image_url'=>$image_base_url.$image['file_name']);
+			}else
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+		}else if(isset($_FILES['emirates_image']) && !empty($_FILES['emirates_image']['name'])){
+			$config = array_merge($config,array('file_name' =>$employee_code.'_emirates_id'.rand(1,100)));
+			$this->upload->initialize($config);
+			if($this->upload->do_upload('emirates_image')){
+				if($employee_details[0]->emirates_image!="")
+					unlink($this->data['employee-upload-path'].$employee_details[0]->emirates_image);
+				$image = $this->upload->data(); 
+				$data = array(
+					'emirates_image' => $image['file_name'],'employee_code'=>$employee_code
+				);
+				if(!empty($employee_details))
+					$this->base_model->update('tbl_employee_details',$data,array('employee_code'=>$employee_code));
+				else
+					$this->base_model->add('tbl_employee_details',$data);
+				$response = array('status'=>1,'message'=>'Image uploaded successfully','image_url'=>$image_base_url.$image['file_name']);
+			}else
+				$response = array('status'=>0,'message'=>$this->upload->display_errors());
+		}else
+			$response = array('status'=>0,'message'=>'Upload data exceeding the limit, Maximum 1 MB allowed');
+		$this->output->set_status_header(200)->set_content_type('application/json')->set_output(json_encode($response));
 	}
-}
-
-
 }
 ?>
