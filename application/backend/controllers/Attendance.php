@@ -61,10 +61,13 @@ class Attendance extends MY_Controller {
 		$this->data['breadcrumb']=$this->breadcrumb->output();
 		$this->data['main_title']='Attendance';
 		$data['employee_name']=$this->base_model->get('tbl_employee_master');
+		//$employee_master = $this->base_model->get_field('tbl_employee_master',array('employee_code'),array('employee_id' => $id));
+		//$employee_details 	= $this->base_model->get_fields('tbl_employee_details',array('passport_front_image','passport_back_image','visa_image','health_card_image','labour_card_image','emirates_image','driving_licence_image'),array('employee_code' => $employee_master[0]->employee_code));
+		//$employee_code=$this->base_model->get_field('tbl_employee_master',array('employee_code'),array('employee_code' => $employee_master[0]->employee_code));
+		//$employee = $this->base_model->get_fields('tbl_employee_master',array('employee_code'),array('employee_id' => $this->input->post('employee_id')));
 		$config_validation = array(
 			array('field'=>'employee_name','label'=>'Employee Name*','rules'=>'trim|required'),
-			array('field'=>'check_in_time','label'=>'Punch Time*','rules'=>'trim|required'),
-			array('field'=>'check_out_time','label'=>'Punch Time*','rules'=>'trim|required')
+			array('field'=>'punch_in_time','label'=>'Punch Time*','rules'=>'trim|required')
 			
 		);
 		$this->form_validation->set_rules($config_validation);
@@ -73,15 +76,20 @@ class Attendance extends MY_Controller {
         }
     	else{
 			$data = array(
-				'employee_name' => $this->input->post('employee_name'),
-                'check_in_time' => $this->input->post('check_in_time'),
-				'check_out_time' => $this->input->post('check_out_time')
+				'employee_code ' => $this->input->post('employee_name'),
+				//'employee_name' =>$this->input->post('employee_name'),
+                'punch_in_time' => $this->input->post('punch_in_time')
+				//'check_out_time' => $this->input->post('check_out_time')
             );
-			$this->Base_model->add('tbl_attendance_form',$data);
+
+			//var_dump($data);exit;
+			$lastid = $this->db->insert_id();
+			$this->Base_model->add('tbl_attendance_master',$data);
 			$this->session->set_flashdata('success','Data inserted successfully');
 			redirect(base_url().'Attendance/attendence_form');
 		}
 	}
+	
 	//date('Y-m-d',strtotime($this->input->post('punch_date'))).' '.date('H:i:s',strtotime($this->input->post('punch_date')))
 
     public function monthly_attendance(){
